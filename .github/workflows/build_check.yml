@@ -140,7 +140,7 @@ jobs:
         path: ${{github.workspace}}/build/packages/*
 
 
-    # --- Windows steps ---
+    # --- Windows MinGW_w64 steps ---
 
     - name: Install MSYS2 Packages
       if: startsWith(matrix.os, 'windows')
@@ -154,14 +154,14 @@ jobs:
           mingw-w64-x86_64-fftw
           mingw-w64-x86_64-libusb
 
-    - name: Start Windows Build
+    - name: Start Windows MinGW_w64 Build
       if: startsWith(matrix.os, 'windows')
       shell: msys2 {0}
       run: |
         cmake -D CMAKE_PREFIX_PATH=/mingw64/qt5-static -D CMAKE_BUILD_TYPE=$BUILD_TYPE -B build
         cmake --build build --parallel 8 --target package
 
-    - name: Create Windows Package
+    - name: Create Windows MinGW_w64 Package
       # GitHub hosts Windows runners on Standard_DS2_v2 virtual machines in Microsoft Azure:
       # 2-core CPU, 7 GB of RAM memory, 14 GB of SSD disk space
       working-directory: ${{github.workspace}}/build
@@ -175,7 +175,46 @@ jobs:
         7z a ../packages/$ZIP *.exe driver documents
         ls -l ../packages
 
-    - name: Upload Windows Artifacts
+    - name: Upload Windows MinGW_w64 Artifacts
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v3
+      with:
+        name: openhantek_${{ steps.config_git.outputs.git_describe }}_win_mingw_w64
+        path: ./build/packages/*.zip
+
+
+    # --- Windows MSVC steps ---
+
+    - name: Install Qt for Windows
+      if: startsWith(matrix.os, 'windows')
+      uses: jurplel/install-qt-action@v3
+
+
+    - name: Setup Windows MSVC Build
+      if: startsWith(matrix.os, 'windows')
+      run:
+        md build &
+        call "%VCINSTALLDIR%/Auxiliary/Build/vcvars64.bat" &
+        cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_PREFIX_PATH=%Qt5_DIR% -DCMAKE_BUILD_TYPE=Release -Bbuild
+
+
+    - name: Windows MSVC Build
+      # GitHub hosts Windows runners on Standard_DS2_v2 virtual machines in Microsoft Azure:
+      # 2-core CPU, 7 GB of RAM memory, 14 GB of SSD disk space
+      working-directory: ${{github.workspace}}/build
+      if: startsWith(matrix.os, 'windows')
+      shell: bash
+      run: |
+        cmake --build . --parallel 8 --config Release --target package
+        ZIP=$(basename packages/openhantek_*_win_x64.zip)
+        rm -f packages/openhantek_*_win_x64.*
+        cd openhantek/Release
+        7z a ../../packages/$ZIP *
+        cd ../..
+        ls -l packages
+
+
+    - name: Upload Windows MSVC Artifacts
       if: startsWith(matrix.os, 'windows')
       uses: actions/upload-artifact@v3
       with:
