@@ -209,7 +209,7 @@ jobs:
 
 # --- Windows MSVC steps ---
   windows_msvc:
-    runs-on: windows-2022
+    runs-on: windows-2019
     steps:
 
     # --- Clone the latest commit ---
